@@ -333,13 +333,13 @@ class IPAttnProcessor2_0(torch.nn.Module):
         if attn.group_norm is not None:
             hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
 
-        query = attn.to_q(hidden_states)
+        query = attn.to_q(hidden_states) # torch.Size([1, 4096, 320])-torch.Size([1, 4096, 320])
 
         if encoder_hidden_states is None:
-            encoder_hidden_states = hidden_states
+            encoder_hidden_states = hidden_states 
         else:
             # get encoder_hidden_states, ip_hidden_states
-            end_pos = encoder_hidden_states.shape[1] - self.num_tokens
+            end_pos = encoder_hidden_states.shape[1] - self.num_tokens # 81-4=77
             encoder_hidden_states, ip_hidden_states = (
                 encoder_hidden_states[:, :end_pos, :],
                 encoder_hidden_states[:, end_pos:, :],
@@ -347,7 +347,7 @@ class IPAttnProcessor2_0(torch.nn.Module):
             if attn.norm_cross:
                 encoder_hidden_states = attn.norm_encoder_hidden_states(encoder_hidden_states)
 
-        key = attn.to_k(encoder_hidden_states)
+        key = attn.to_k(encoder_hidden_states) # [1, 77, 768]-[1, 77, 320]
         value = attn.to_v(encoder_hidden_states)
 
         inner_dim = key.shape[-1]
@@ -365,10 +365,10 @@ class IPAttnProcessor2_0(torch.nn.Module):
         )
 
         hidden_states = hidden_states.transpose(1, 2).reshape(batch_size, -1, attn.heads * head_dim)
-        hidden_states = hidden_states.to(query.dtype)
+        hidden_states = hidden_states.to(query.dtype) # (1,4096,320)
 
         # for ip-adapter
-        ip_key = self.to_k_ip(ip_hidden_states)
+        ip_key = self.to_k_ip(ip_hidden_states) # [1, 4, 768]-[1, 4, 320]
         ip_value = self.to_v_ip(ip_hidden_states)
 
         ip_key = ip_key.view(batch_size, -1, attn.heads, head_dim).transpose(1, 2)
@@ -386,7 +386,7 @@ class IPAttnProcessor2_0(torch.nn.Module):
         ip_hidden_states = ip_hidden_states.transpose(1, 2).reshape(batch_size, -1, attn.heads * head_dim)
         ip_hidden_states = ip_hidden_states.to(query.dtype)
 
-        hidden_states = hidden_states + self.scale * ip_hidden_states
+        hidden_states = hidden_states + self.scale * ip_hidden_states # [1, 4096, 320]
 
         # linear proj
         hidden_states = attn.to_out[0](hidden_states)

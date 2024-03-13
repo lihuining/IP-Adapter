@@ -161,14 +161,14 @@ def parse_args():
     parser.add_argument(
         "--data_json_file",
         type=str,
-        default=None,
+        default="data.json",
         required=True,
         help="Training data",
     )
     parser.add_argument(
         "--data_root_path",
         type=str,
-        default="",
+        default="root.json",
         required=True,
         help="Training data root path",
     )
@@ -281,7 +281,7 @@ def main():
     text_encoder = CLIPTextModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="text_encoder")
     vae = AutoencoderKL.from_pretrained(args.pretrained_model_name_or_path, subfolder="vae")
     unet = UNet2DConditionModel.from_pretrained(args.pretrained_model_name_or_path, subfolder="unet")
-    image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path)
+    image_encoder = CLIPVisionModelWithProjection.from_pretrained(args.image_encoder_path) 
     # freeze parameters of models to save more memory
     unet.requires_grad_(False)
     vae.requires_grad_(False)
@@ -290,14 +290,14 @@ def main():
     
     #ip-adapter
     image_proj_model = ImageProjModel(
-        cross_attention_dim=unet.config.cross_attention_dim,
-        clip_embeddings_dim=image_encoder.config.projection_dim,
+        cross_attention_dim=unet.config.cross_attention_dim, # 768
+        clip_embeddings_dim=image_encoder.config.projection_dim, # 1024
         clip_extra_context_tokens=4,
     )
     # init adapter modules
     attn_procs = {}
     unet_sd = unet.state_dict()
-    for name in unet.attn_processors.keys():
+    for name in unet.attn_processors.keys(): # name:down_blocks.0.attentions.0.transformer_blocks.0.attn1.processor
         cross_attention_dim = None if name.endswith("attn1.processor") else unet.config.cross_attention_dim
         if name.startswith("mid_block"):
             hidden_size = unet.config.block_out_channels[-1]
@@ -410,3 +410,7 @@ def main():
                 
 if __name__ == "__main__":
     main()    
+'''
+sd1.5:/mnt/workspace/workgroup/xdj/models/AIGC/sd_model/model_path/models--runwayml--stable-diffusion-v1-5/snapshots/c9ab35ff5f2c362e9e22fbafe278077e196057f0
+image_encoder:/mnt/workspace/workgroup/xdj/models/AIGC/sd_model/model_path/models/Ip-adpter/image_encoder
+'''
